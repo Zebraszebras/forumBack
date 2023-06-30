@@ -1,20 +1,18 @@
-
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const {
-    CREATE_QUESTION,
-    GET_ALL_QUESTIONS,
-    GET_QUESTION,
-    UPDATE_QUESTION,
-    DELETE_QUESTION
+  createQuestion,  // Update the import statement to use createQuestion instead of CREATE_QUESTION
+  getAllQuestions,
+  getQuestion,
+  updateQuestion,
+  deleteQuestion,
+} = require("../controllers/question");
 
-} = require ("../controllers/question");
-
-router.post("/questions", authMiddleware, CREATE_QUESTION);
-router.get("/questions", GET_ALL_QUESTIONS);
-router.get("/questions/:id", GET_QUESTION);
-router.put("/questions/:id", authMiddleware, UPDATE_QUESTION);
-router.delete("/questions/:id", authMiddleware, DELETE_QUESTION);
+router.post("/", authMiddleware, createQuestion);  // Update the function name here as well
+router.get("/", getAllQuestions);
+router.get("/:id", getQuestion);
+router.put("/:id", authMiddleware, updateQuestion);
+router.delete("/:id", authMiddleware, deleteQuestion);
 
 module.exports = router;

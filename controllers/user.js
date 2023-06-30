@@ -193,7 +193,10 @@ module.exports.LIKE_DISLIKE = async (req, res) => {
 
     const update = req.body.isLiked
       ? { $addToSet: { liked_by: userId }, $inc: { gained_likes_number: 1 } }
-      : { $addToSet: { disliked_by: userId }, $inc: { gained_likes_number: -1 } };
+      : {
+          $addToSet: { disliked_by: userId },
+          $inc: { gained_likes_number: -1 },
+        };
 
     const updatedAnswer = await AnswerModel.findByIdAndUpdate(
       answerId,
@@ -233,5 +236,19 @@ module.exports.ANSWERED_QUESTIONS = async (req, res) => {
   } catch (error) {
     console.log("ERROR", error);
     res.status(500).json({ message: "Failed to retrieve answered questions" });
+  }
+};
+module.exports.ANSWERS = async (req, res) => {
+  try {
+    const questionId = req.params.questionId;
+
+    // Your logic to retrieve answers for the specified questionId
+    // Example: Assuming you have a mongoose model for answers called "Answer"
+    const answers = await AnswerModel.find({ questionId });
+
+    res.status(200).json(answers);
+  } catch (error) {
+    console.log("ERROR", error);
+    res.status(500).json({ message: "Failed to retrieve answers" });
   }
 };
