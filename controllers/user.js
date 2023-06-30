@@ -57,14 +57,12 @@ module.exports.SIGN_UP = async (req, res) => {
       return res.status(400).json({ response: "User already exists" });
     }
 
-    const userId = uniqid();
     const nameStartingUppercase = name.charAt(0).toUpperCase() + name.slice(1);
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new UserModel({
       name: nameStartingUppercase,
       password: hashedPassword,
       email,
-      _id: userId,
     });
 
     await newUser.save();
@@ -95,7 +93,7 @@ module.exports.LOG_IN = async (req, res) => {
     bcrypt.compare(password, user.password, (err, isPasswordMatch) => {
       if (isPasswordMatch) {
         const token = generateJWTToken(user.id);
-        const refreshToken = generateRefreshToken(user.id);
+        // Generate and handle refresh token if needed
 
         return res.status(200).json({
           response: "You logged in",
@@ -130,23 +128,16 @@ module.exports.ASK_NEW_QUESTION = async (req, res) => {
     res.status(500).json({ message: "Failed to create question" });
   }
 };
-const QuestionModel = require("../models/question");
-const authMiddleware = require("../middlewares/authMiddleware");
 
 module.exports.DELETE_QUESTION = async (req, res) => {
   try {
     const questionId = req.params.id;
 
-    // Check if the question exists
     const question = await QuestionModel.findById(questionId);
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Perform any necessary authorization checks here
-    // For example, you can check if the user is the creator of the question
-
-    // Delete the question
     await QuestionModel.findByIdAndDelete(questionId);
 
     res.status(200).json({ message: "Question deleted successfully" });
@@ -156,191 +147,91 @@ module.exports.DELETE_QUESTION = async (req, res) => {
   }
 };
 
-
-
-/* 
-router.post("/answer/:questionId", authMiddleware, ANSWER_ONE_QUESTION);
-router.delete("/answer/:id", authMiddleware, DELETE_ANSWER);
-router.post("/like-dislike/:answerId", authMiddleware, LIKE_DISLIKE);
-router.get("/questions", authMiddleware, ALL_QUESTIONS);
-router.get("/questions/answered", authMiddleware, ANSWERED_QUESTIONS);
-router.get("/answers/:questionId", authMiddleware, ANSWERS);
-
-
-
-module.exports.GET_ALL_USERS = async (req, res) => {
+module.exports.ANSWER_ONE_QUESTION = async (req, res) => {
   try {
-    const users = await UserModel.find().sort({ name: 1 });
+    const questionId = req.params.id;
+
+    const question = await QuestionModel.findById(questionId);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    // Answer the question (assuming AnswerModel is the correct model)
+    await QuestionModel.findByIdAndUpdate(questionId, { answered: true });
+
+    res.status(200).json({ message: "Question answered successfully" });
+  } catch (error) {
+    console.log("ERROR", error);
     res
-      .status(200)
-      .json({ users: users.sort((a, b) => a.name.localeCompare(b.name)) });
-  } catch (err) {
-    console.log("ERR", err);
-    res.status(500).json({ response: "ERROR, please try later" });
+      .status(500)
+      .json({ message: "Failed to answer the question", error: error.message });
   }
 };
 
-module.exports.GET_USER_BY_ID = async (req, res) => {
+module.exports.DELETE_ANSWER = async (req, res) => {
   try {
-    const user = await UserModel.findOne({ _id: req.params.id });
+    const answerId = req.params.id;
 
-    if (!user) {
-      res.status(404).json({ response: "User not found" });
-    } else {
-      res.status(200).json({ user: user });
+    const answer = await AnswerModel.findById(answerId);
+    if (!answer) {
+      return res.status(404).json({ message: "Answer not found" });
     }
-  } catch (err) {
-    console.log("ERR", err);
-    res.status(500).json({ response: "ERROR, please try later" });
+
+    await AnswerModel.findByIdAndDelete(answerId);
+
+    res.status(200).json({ message: "Answer deleted successfully" });
+  } catch (error) {
+    console.log("ERROR", error);
+    res.status(500).json({ message: "Failed to delete answer" });
   }
 };
 
-module.exports.GET_ALL_USERS_WITH_TICKETS = async (req, res) => {
+module.exports.LIKE_DISLIKE = async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const answerId = req.params.answerId;
+    const userId = req.user.id;
 
-    const aggregatedUserData = await UserModel.aggregate([
-      {
-        $match: { _id: userId },
-      },
-      {
-        $lookup: {
-          from: "tickets",
-          localField: "bought_tickets",
-          foreignField: "_id",
-          as: "user_tickets",
-        },
-      },
-    ]).exec();
+    const update = req.body.isLiked
+      ? { $addToSet: { liked_by: userId }, $inc: { gained_likes_number: 1 } }
+      : { $addToSet: { disliked_by: userId }, $inc: { gained_likes_number: -1 } };
 
-    if (!aggregatedUserData || aggregatedUserData.length === 0) {
-      return res.status(404).json({ response: "User not found" });
-    }
-
-    res.status(200).json({ aggregatedUserData });
-  } catch (err) {
-    console.log("ERR", err);
-    res.status(500).json({ response: "ERROR, please try later" });
-  }
-};
-
-module.exports.GET_USER_BY_ID_WITH_TICKETS = async (req, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ response: "Unauthorized" });
-    }
-
-    const userId = req.params.userId;
-
-    if (req.user.id !== userId) {
-      return res.status(403).json({ response: "Forbidden" });
-    }
-
-    const user = await UserModel.findOne({ id: userId }).exec();
-
-    if (!user) {
-      return res.status(404).json({ response: "User not found" });
-    }
-
-    const tickets = await TicketModel.aggregate([
-      {
-        $match: { userId: mongoose.Types.ObjectId(user.id) },
-      },
-      { $group: { _id: "$userId", totalTickets: { $sum: 1 } } },
-    ]).exec();
-
-    const userWithTickets = {
-      id: user.id,
-      email: user.email,
-      totalTicketsBought: tickets.length > 0 ? tickets[0].totalTickets : 0,
-    };
-
-    res.status(200).json({ userWithTickets });
-  } catch (err) {
-    console.log("ERR", err);
-    res.status(500).json({ response: "ERROR, please try later" });
-  }
-};
-
-module.exports.DEPOSIT = async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const userId = req.body.userId;
-
-    const user = await UserModel.findOneAndUpdate(
-      { _id: userId },
-      { $inc: { money_balance: amount } }
+    const updatedAnswer = await AnswerModel.findByIdAndUpdate(
+      answerId,
+      update,
+      { new: true }
     );
 
-    user.money_balance += amount;
-
-    return res.status(200).json({ user });
-  } catch (err) {
-    console.log("ERR", err);
-    return res.status(500).json({ response: "ERROR" });
-  }
-};*/
-
-/*module.exports.LOGIN = async (req, res) => {
-
-  try {
-
-    const user = await UserModel.findOne({ email: req.body.email });
-
-    if (!user) {
-
-      return res.status(404).json({ response: "Bad email or password" });
-
+    if (!updatedAnswer) {
+      return res.status(404).json({ message: "Answer not found" });
     }
-    bcrypt.compare(req.body.password, user.password, (err, isPasswordMatch) => {
 
-      if (isPasswordMatch) {
+    res.status(200).json({ message: "Like/dislike updated successfully" });
+  } catch (error) {
+    console.log("ERROR", error);
+    res.status(500).json({ message: "Failed to update like/dislike" });
+  }
+};
 
-        const token = jwt.sign(
+module.exports.ALL_QUESTIONS = async (req, res) => {
+  try {
+    const questions = await QuestionModel.find();
 
-          {
+    res.status(200).json(questions);
+  } catch (error) {
+    console.log("ERROR", error);
+    res.status(500).json({ message: "Failed to retrieve questions" });
+  }
+};
 
-            email: user.email,
-
-            userId: user.id,
-
-          },
-
-          process.env.JWT_SECRET,
-
-          { expiresIn: "10d" },
-
-          {
-
-            algorithm: "RS256",
-
-          }
-
-        );
-        return res.status(200).json({
-
-          response: "You logged in successfully",
-
-          jwt: token,
-
-          userId: user.id
-
-        });
-
-      } else {
-
-        return res.status(404).json({ response: "Bad email or password" });
-
-      }
-
+module.exports.ANSWERED_QUESTIONS = async (req, res) => {
+  try {
+    const answeredQuestions = await QuestionModel.find({
+      answers_id: { $exists: true, $ne: [] },
     });
 
-  } catch (err) {
-
-    console.log("ERR", err);
-
-    res.status(404).json({ response: "ERROR, please try later" });
-
+    res.status(200).json(answeredQuestions);
+  } catch (error) {
+    console.log("ERROR", error);
+    res.status(500).json({ message: "Failed to retrieve answered questions" });
   }
-
-};*/
+};

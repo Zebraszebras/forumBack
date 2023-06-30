@@ -6,15 +6,16 @@ const mongoose = require("mongoose");
 
 require("dotenv").config();
 
-/*
-const ticketRouter = require("./routes/ticket");
 const userRouter = require("./routes/user");
+const answerRouter = require("./routes/answer");
+const questionRouter = require("./routes/question");
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.use("/ticket", ticketRouter);
+app.use("/question", questionRouter);
+app.use("/answer", answerRouter);
 app.use("/user", userRouter);
 
 mongoose
@@ -31,4 +32,3 @@ mongoose
   .catch((err) => {
     console.error("Failed to connect to MongoDB:", err);
   });
-*/
