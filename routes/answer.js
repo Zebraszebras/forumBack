@@ -3,12 +3,14 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const {
   DELETE_ANSWER,
-  LIKE_DISLIKE,
-  ANSWERS
+  LIKE,
+  DISLIKE,
+  UPDATE_ANSWER
 } = require("../controllers/answer");
 
 router.delete("/answer/:id", authMiddleware, DELETE_ANSWER);
-//router.post("/like-dislike/:answerId", authMiddleware, LIKE_DISLIKE);
-//router.get("/answers/:questionId", authMiddleware, ANSWERS);
+router.put("/answer/:id/like", authMiddleware, LIKE);
+router.put("/answer/:id/dislike", authMiddleware, DISLIKE);
+router.put("/answer/:id", authMiddleware, UPDATE_ANSWER);
 
 module.exports = router;
