@@ -63,10 +63,11 @@ module.exports.SIGN_UP = async (req, res) => {
       name: nameStartingUppercase,
       password: hashedPassword,
       email,
+      asked_questions_ids: [],
+      answers_ids:[],
     });
-
+    console.log("newUser", newUser);
     await newUser.save();
-
     const token = generateJWTToken(newUser.id);
 
     return res.status(200).json({
@@ -93,12 +94,10 @@ module.exports.LOG_IN = async (req, res) => {
     bcrypt.compare(password, user.password, (err, isPasswordMatch) => {
       if (isPasswordMatch) {
         const token = generateJWTToken(user.id);
-        // Generate and handle refresh token if needed
-
+      
         return res.status(200).json({
           response: "You logged in",
-          jwt: token,
-          refreshToken: refreshToken,
+          jwt: token
         });
       } else {
         return res.status(401).json({ response: "Bad data" });
@@ -110,7 +109,7 @@ module.exports.LOG_IN = async (req, res) => {
   }
 };
 
-module.exports.ASK_NEW_QUESTION = async (req, res) => {
+/* module.exports.ASK_NEW_QUESTION = async (req, res) => {
   try {
     const { question_text } = req.body;
     const questionId = uniqid();
@@ -251,4 +250,4 @@ module.exports.ANSWERS = async (req, res) => {
     console.log("ERROR", error);
     res.status(500).json({ message: "Failed to retrieve answers" });
   }
-};
+};*/
