@@ -12,7 +12,7 @@ const {
 router.post("/question", authMiddleware, CREATE_QUESTION);
 router.delete("/question/:id", authMiddleware, DELETE_QUESTION);
 router.post("/answer/:id", authMiddleware, ANSWER_ONE_QUESTION);
-router.get("/questions", authMiddleware, ALL_QUESTIONS);
-router.get("/questions/answered", authMiddleware, ANSWERED_QUESTIONS);
+router.get("/questions",  ALL_QUESTIONS);
+router.get("/questions/answered", ANSWERED_QUESTIONS);
 
 module.exports = router;
