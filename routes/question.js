@@ -5,6 +5,7 @@ const {
   CREATE_QUESTION,
   DELETE_QUESTION,
   ANSWER_ONE_QUESTION,
+    QUESTION, 
   ALL_QUESTIONS,
   ANSWERED_QUESTIONS,
 } = require("../controllers/question");
@@ -12,6 +13,7 @@ const {
 router.post("/question", authMiddleware, CREATE_QUESTION);
 router.delete("/question/:id", authMiddleware, DELETE_QUESTION);
 router.post("/answer/:id", authMiddleware, ANSWER_ONE_QUESTION);
+router.get("/questions/:id",  QUESTION);
 router.get("/questions",  ALL_QUESTIONS);
 router.get("/questions/answered", ANSWERED_QUESTIONS);
 

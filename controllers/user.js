@@ -57,10 +57,11 @@ module.exports.SIGN_UP = async (req, res) => {
       return res.status(400).json({ response: "User already exists" });
     }
 
-    const nameStartingUppercase = name.charAt(0).toUpperCase() + name.slice(1);
+   
+    
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new UserModel({
-      name: nameStartingUppercase,
+      name: name,
       password: hashedPassword,
       email,
       asked_questions_ids: [],
@@ -97,7 +98,9 @@ module.exports.LOG_IN = async (req, res) => {
       
         return res.status(200).json({
           response: "You logged in",
-          jwt: token
+          jwt: token,
+          name: user.name,
+          email: user.email 
         });
       } else {
         return res.status(401).json({ response: "Bad data" });

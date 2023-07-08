@@ -5,6 +5,8 @@ const UserModel = require("../models/user");
 const AnswerModel = require("../models/answer");
 const QuestionModel = require("../models/question");
 
+
+
 const CREATE_QUESTION = async (req, res) => {
   try {
     const { question_text } = req.body;
@@ -92,6 +94,23 @@ const ANSWER_ONE_QUESTION = async (req, res) => {
   }
 };
 
+const QUESTION = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await QuestionModel.findById(id);
+
+    if (!question) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    res.status(200).json({ question });
+  } catch (error) {
+    console.log("ERR", error);
+    res.status(500).json({ error: "Failed to get the question" });
+  }
+};
+
 const ALL_QUESTIONS = async (req, res) => {
   try {
     const questions = await QuestionModel.find();
@@ -131,6 +150,7 @@ module.exports = {
   CREATE_QUESTION,
   DELETE_QUESTION,
   ANSWER_ONE_QUESTION,
+    QUESTION,
   ALL_QUESTIONS,
   ANSWERED_QUESTIONS,
 };
