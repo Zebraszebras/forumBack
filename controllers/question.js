@@ -5,8 +5,6 @@ const UserModel = require("../models/user");
 const AnswerModel = require("../models/answer");
 const QuestionModel = require("../models/question");
 
-
-
 const CREATE_QUESTION = async (req, res) => {
   try {
     const { question_text } = req.body;
@@ -14,6 +12,7 @@ const CREATE_QUESTION = async (req, res) => {
     // Create a new question
     const question = new QuestionModel({
       question_text,
+      asked_by: req.userId,
       answers_ids: [],
     });
 
@@ -38,9 +37,18 @@ const DELETE_QUESTION = async (req, res) => {
     console.log("Deleting question:", id);
 
     // Find the question by ID and delete it
+    const question = await QuestionModel.findById(id);
 
-    const question = await QuestionModel.findByIdAndDelete(id);
-    console.log("question", question);
+    if (!question) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+    if (question.asked_by && question.asked_by.toString() !== req.userId) {
+      return res
+        .status(400)
+        .json({ error: "Only owner can delete a question" });
+    }
+    await question.deleteOne();
+
     const user = await UserModel.findById(req.userId);
     const questionIndex = user.asked_questions_ids.indexOf(question._id);
     if (questionIndex > -1) {
@@ -52,10 +60,6 @@ const DELETE_QUESTION = async (req, res) => {
     }
 
     await user.save();
-
-    if (!question) {
-      return res.status(404).json({ error: "Question not found" });
-    }
 
     res.status(200).json({ message: "Question deleted successfully" });
   } catch (error) {
@@ -81,11 +85,14 @@ const ANSWER_ONE_QUESTION = async (req, res) => {
 
     const answer = new AnswerModel({
       answer_text: answerText, // Assign the answer text to the answer model
+      answered_by: req.userId,
       liked_by: [],
       disliked_by: [],
     });
 
     await answer.save();
+    question.answers_ids.push(answer._id);
+    await question.save();
 
     res.status(200).json({ answer });
   } catch (err) {
@@ -121,16 +128,30 @@ const ALL_QUESTIONS = async (req, res) => {
     res.status(500).json({ error: "Failed to get questions" });
   }
 };
+
+const QUESTION_ANSWERS = async (req, res) => {
+  const { id } = req.params;
+  const question = await QuestionModel.findById(id).populate("answers_ids");
+  const answers = question.answers_ids.map((answer) => ({
+    _id: answer._id,
+    answer_text: answer.answer_text,
+    answered_by: answer.answered_by,
+  }));
+  res.status(200).json(answers);
+};
+
 //noriu matyti prie klausimo visus jo atsakymus
 const ANSWERED_QUESTIONS = async (req, res) => {
   try {
-    const answeredQuestions = await QuestionModel.find({ answered: true }).populate('answers_ids');
+    const answeredQuestions = await QuestionModel.find({
+      answered: true,
+    }).populate("answers_ids");
 
-    const formattedQuestions = answeredQuestions.map(question => {
-      const answers = question.answers_ids.map(answer => answer.answer_text);
+    const formattedQuestions = answeredQuestions.map((question) => {
+      const answers = question.answers_ids.map((answer) => answer.answer_text);
       return {
         question: question.question_text,
-        answers: answers
+        answers: answers,
       };
     });
 
@@ -143,14 +164,12 @@ const ANSWERED_QUESTIONS = async (req, res) => {
   }
 };
 
-    
-
-
 module.exports = {
   CREATE_QUESTION,
   DELETE_QUESTION,
   ANSWER_ONE_QUESTION,
-    QUESTION,
+  QUESTION,
+  QUESTION_ANSWERS,
   ALL_QUESTIONS,
   ANSWERED_QUESTIONS,
 };

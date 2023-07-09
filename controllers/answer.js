@@ -1,8 +1,4 @@
-const uniqid = require("uniqid");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const UserModel = require("../models/user");
-const QuestionModel = require("../models/question");
 const AnswerModel = require("../models/answer");
 
 const LIKE = async (req, res) => {
@@ -110,15 +106,17 @@ const UPDATE_ANSWER = async (req, res) => {
 
 const DELETE_ANSWER = async (req, res) => {
   try {
-    const { id } = req.params.id;
-
+    const { id } = req.params;
     // Find the answer by ID and delete it
-
-    const answer = await AnswerModel.findByIdAndDelete(id);
+    const answer = await AnswerModel.findById(id);
 
     if (!answer) {
       return res.status(404).json({ error: "Answer not found" });
     }
+    if (answer.answered_by && answer.answered_by.toString() !== req.userId) {
+      return res.status(400).json({ error: "Only owner can delete an answer" });
+    }
+    await answer.deleteOne();
 
     res.status(200).json({ message: "Answer deleted successfully" });
   } catch (error) {

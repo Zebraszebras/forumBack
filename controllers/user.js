@@ -57,15 +57,13 @@ module.exports.SIGN_UP = async (req, res) => {
       return res.status(400).json({ response: "User already exists" });
     }
 
-   
-    
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new UserModel({
       name: name,
       password: hashedPassword,
       email,
       asked_questions_ids: [],
-      answers_ids:[],
+      answers_ids: [],
     });
     console.log("newUser", newUser);
     await newUser.save();
@@ -74,7 +72,9 @@ module.exports.SIGN_UP = async (req, res) => {
     return res.status(200).json({
       response: "User created",
       jwt: token,
-      userId: newUser.id,
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
     });
   } catch (err) {
     console.log("ERR", err);
@@ -95,12 +95,13 @@ module.exports.LOG_IN = async (req, res) => {
     bcrypt.compare(password, user.password, (err, isPasswordMatch) => {
       if (isPasswordMatch) {
         const token = generateJWTToken(user.id);
-      
+
         return res.status(200).json({
           response: "You logged in",
           jwt: token,
+          id: user.id,
           name: user.name,
-          email: user.email 
+          email: user.email,
         });
       } else {
         return res.status(401).json({ response: "Bad data" });
